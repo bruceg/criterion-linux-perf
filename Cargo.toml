@@ -1,0 +1,13 @@
+[package]
+name = "criterion-linux-perf"
+version = "0.1.0"
+authors = ["Bruce Guenter <bruce@untroubled.org>"]
+edition = "2018"
+
+[dependencies]
+criterion = "0.3.3"
+perf-event = "0.4.5"
+
+[[bench]]
+name = "test"
+harness = false
