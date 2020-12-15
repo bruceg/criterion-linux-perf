@@ -7,15 +7,11 @@ fn timeit<T: 'static + Measurement>(_crit: &mut Criterion<T>) {
     _crit.bench_function(r#"String::from("")"#, |_bencher| {
         _bencher.iter(|| String::from(""))
     });
-
-    _crit.bench_function(r#""".to_string()"#, |_bencher| {
-        _bencher.iter(|| "".to_string())
-    });
 }
 
 criterion_group!(
     name = benches;
-    config = Criterion::default().with_measurement(PerfMeasurement);
+    config = Criterion::default().with_measurement(PerfMeasurement::default());
     targets = timeit
 );
 criterion_main!(benches);

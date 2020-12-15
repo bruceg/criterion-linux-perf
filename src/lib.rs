@@ -2,16 +2,81 @@ use criterion::{
     measurement::{Measurement, ValueFormatter},
     Throughput,
 };
-use perf_event::Counter;
+use perf_event::{
+    events::{Event, Hardware},
+    Counter,
+};
 
-pub struct PerfMeasurement;
+macro_rules! perf_mode {
+    ( $( $ident:ident = $event:expr => $unit:literal, )* ) => {
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        pub enum PerfMode {
+            $( $ident, )*
+        }
+
+        impl PerfMode {
+            fn event(&self) -> Event {
+                match self {
+                    $( Self::$ident => $event.into(), )*
+                }
+            }
+
+             fn units(&self) -> (&'static str, &'static str, &'static str) {
+                match self {
+                    $( Self::$ident => (
+                        $unit,
+                        concat!($unit, "/byte"),
+                        concat!($unit, "/element"),
+                    ), )*
+                }
+            }
+        }
+    };
+}
+
+perf_mode! {
+    Instructions = Hardware::INSTRUCTIONS => "instructions",
+    Cycles = Hardware::CPU_CYCLES => "cycles",
+    Branches = Hardware::BRANCH_INSTRUCTIONS => "branches",
+    BranchMisses = Hardware::BRANCH_MISSES => "branch misses",
+    CacheRefs = Hardware::CACHE_REFERENCES => "cache refs",
+    CacheMisses = Hardware::CACHE_MISSES => "cache misses",
+    BusCycles = Hardware::BUS_CYCLES => "bus cycles",
+}
+
+#[derive(Copy, Clone)]
+pub struct PerfMeasurement {
+    mode: PerfMode,
+    formatter: PerfFormatter,
+}
+
+impl Default for PerfMeasurement {
+    fn default() -> Self {
+        Self::new(PerfMode::Instructions)
+    }
+}
+
+impl PerfMeasurement {
+    pub fn new(mode: PerfMode) -> Self {
+        let units = mode.units();
+        let formatter = PerfFormatter {
+            units: units.0,
+            throughput_bytes: units.1,
+            throughput_elements: units.2,
+        };
+        Self { mode, formatter }
+    }
+}
 
 impl Measurement for PerfMeasurement {
     type Intermediate = Counter;
     type Value = u64;
 
     fn start(&self) -> Self::Intermediate {
-        let mut counter = perf_event::Builder::new().build().unwrap();
+        let mut counter = perf_event::Builder::new()
+            .kind(self.mode.event())
+            .build()
+            .unwrap();
         counter.enable().unwrap();
         counter
     }
@@ -34,26 +99,20 @@ impl Measurement for PerfMeasurement {
     }
 
     fn formatter(&self) -> &dyn ValueFormatter {
-        &PerfFormatter
+        &self.formatter
     }
 }
 
-pub struct PerfFormatter;
+#[derive(Clone, Copy)]
+pub struct PerfFormatter {
+    units: &'static str,
+    throughput_bytes: &'static str,
+    throughput_elements: &'static str,
+}
 
 impl ValueFormatter for PerfFormatter {
-    fn format_value(&self, value: f64) -> String {
-        format!("{:.0} insns", value)
-    }
-
-    fn format_throughput(&self, throughput: &Throughput, value: f64) -> String {
-        match throughput {
-            Throughput::Bytes(b) => format!("{:.4} insns/byte", value / *b as f64),
-            Throughput::Elements(e) => format!("{:.0} insns/{}", value, e),
-        }
-    }
-
     fn scale_values(&self, _typical_value: f64, _values: &mut [f64]) -> &'static str {
-        "insns"
+        self.units
     }
 
     fn scale_throughputs(
@@ -67,26 +126,18 @@ impl ValueFormatter for PerfFormatter {
                 for val in values {
                     *val /= *n as f64;
                 }
-                "insns/byte"
+                self.throughput_bytes
             }
             Throughput::Elements(n) => {
                 for val in values {
                     *val /= *n as f64;
                 }
-                "insns/element"
+                self.throughput_elements
             }
         }
     }
 
     fn scale_for_machines(&self, _values: &mut [f64]) -> &'static str {
-        "insns"
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+        self.units
     }
 }
