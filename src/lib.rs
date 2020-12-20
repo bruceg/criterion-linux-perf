@@ -1,3 +1,30 @@
+//! This is a measurement plugin for
+//! [Criterion.rs](https://bheisler.github.io/criterion.rs/book/index.html)
+//! that provides measurements using Linux's perf interface.
+//!
+//! # Example
+//!
+//! ```
+//! use criterion::{criterion_group, criterion_main, Criterion};
+//! use criterion_linux_perf::{PerfMeasurement, PerfMode};
+//!
+//! fn timeit(crit: &mut Criterion<PerfMeasurement>) {
+//!     crit.bench_function("String::new", |b| b.iter(|| String::new()));
+//!     crit.bench_function("String::from", |b| b.iter(|| String::from("")));
+//! }
+//!
+//! criterion_group!(
+//!     name = benches;
+//!     config = Criterion::default().with_measurement(
+//!         PerfMeasurement::new(PerfMode::Branches),
+//!     );
+//!     targets = timeit
+//! );
+//! criterion_main!(benches);
+//! ```
+
+#![deny(missing_docs)]
+
 use criterion::{
     measurement::{Measurement, ValueFormatter},
     Throughput,
@@ -9,11 +36,6 @@ use perf_event::{
 
 macro_rules! perf_mode {
     ( $( $ident:ident = $event:expr => $unit:literal, )* ) => {
-        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-        pub enum PerfMode {
-            $( $ident, )*
-        }
-
         impl PerfMode {
             fn event(&self) -> Event {
                 match self {
@@ -34,6 +56,30 @@ macro_rules! perf_mode {
     };
 }
 
+/// The perf counter to measure when running a benchmark.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PerfMode {
+    /// The number of instructions retired. These can be affected by
+    /// various issues, most notably hardware interrupt counts.
+    Instructions,
+    /// The total number of CPU cycles. This can be affected by CPU
+    /// frequency scaling.
+    Cycles,
+    /// The number of branch instructions retired.
+    Branches,
+    /// The number of mispredicted branches.
+    BranchMisses,
+    /// The number of cache accesses.
+    CacheRefs,
+    /// The number of cache misses.
+    CacheMisses,
+    /// The number of bus cycles elapsed.
+    BusCycles,
+    /// The total number of CPU cycles elapsed. This is not affected by
+    /// CPU frequency scaling.
+    RefCycles,
+}
+
 perf_mode! {
     Instructions = Hardware::INSTRUCTIONS => "instructions",
     Cycles = Hardware::CPU_CYCLES => "cycles",
@@ -42,8 +88,13 @@ perf_mode! {
     CacheRefs = Hardware::CACHE_REFERENCES => "cache refs",
     CacheMisses = Hardware::CACHE_MISSES => "cache misses",
     BusCycles = Hardware::BUS_CYCLES => "bus cycles",
+    RefCycles = Hardware::REF_CPU_CYCLES => "cycles",
 }
 
+/// The measurement type to be used with `Criterion::with_measurement()`.
+///
+/// The default measurement created by `PerfMeasurement::default()` is
+/// [`PerfMode`]`::Instructions`.
 #[derive(Clone)]
 pub struct PerfMeasurement {
     event: Event,
@@ -57,6 +108,7 @@ impl Default for PerfMeasurement {
 }
 
 impl PerfMeasurement {
+    /// Create a new measurement, using the given [`PerfMode`] event.
     pub fn new(mode: PerfMode) -> Self {
         let units = mode.units();
         let event = mode.event();
@@ -105,7 +157,7 @@ impl Measurement for PerfMeasurement {
 }
 
 #[derive(Clone)]
-pub struct PerfFormatter {
+struct PerfFormatter {
     units: &'static str,
     throughput_bytes: &'static str,
     throughput_elements: &'static str,
