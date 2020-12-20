@@ -44,9 +44,9 @@ perf_mode! {
     BusCycles = Hardware::BUS_CYCLES => "bus cycles",
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct PerfMeasurement {
-    mode: PerfMode,
+    event: Event,
     formatter: PerfFormatter,
 }
 
@@ -59,12 +59,13 @@ impl Default for PerfMeasurement {
 impl PerfMeasurement {
     pub fn new(mode: PerfMode) -> Self {
         let units = mode.units();
+        let event = mode.event();
         let formatter = PerfFormatter {
             units: units.0,
             throughput_bytes: units.1,
             throughput_elements: units.2,
         };
-        Self { mode, formatter }
+        Self { event, formatter }
     }
 }
 
@@ -74,7 +75,7 @@ impl Measurement for PerfMeasurement {
 
     fn start(&self) -> Self::Intermediate {
         let mut counter = perf_event::Builder::new()
-            .kind(self.mode.event())
+            .kind(self.event.clone())
             .build()
             .unwrap();
         counter.enable().unwrap();
@@ -103,7 +104,7 @@ impl Measurement for PerfMeasurement {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct PerfFormatter {
     units: &'static str,
     throughput_bytes: &'static str,
