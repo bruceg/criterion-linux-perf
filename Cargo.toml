@@ -3,6 +3,12 @@ name = "criterion-linux-perf"
 version = "0.1.0"
 authors = ["Bruce Guenter <bruce@untroubled.org>"]
 edition = "2018"
+license = "Apache-2.0/MIT"
+description = "A measurement plugin for Criterion.rs that provides measurements using Linux's perf interface"
+readme = "README.md"
+keywords = ["benchmark", "criterion", "linux", "perf"]
+categories = ["development-tools::profiling"]
+repository = "https://github.com/bruceg/criterion-linux-perf"
 
 [dependencies]
 criterion = "0.3.3"
