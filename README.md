@@ -1,3 +1,6 @@
+[![crates.io version](https://meritbadge.herokuapp.com/criterion-linux-perf)](https://crates.io/crates/criterion-linux-perf)
+[![docs.rs](https://docs.rs/criterion-linux-perf/badge.svg)](https://docs.rs/criterion-linux-perf)
+
 # criterion-linux-perf
 
 This is a measurement plugin for [Criterion.rs](https://bheisler.github.io/criterion.rs/book/index.html) that provides measurements using Linux's perf interface.

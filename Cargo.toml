@@ -9,6 +9,7 @@ readme = "README.md"
 keywords = ["benchmark", "criterion", "linux", "perf"]
 categories = ["development-tools::profiling"]
 repository = "https://github.com/bruceg/criterion-linux-perf"
+documentation = "https://docs.rs/criterion-linux-perf/"
 
 [dependencies]
 criterion = "0.3.3"
