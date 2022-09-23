@@ -181,6 +181,12 @@ impl ValueFormatter for PerfFormatter {
                 }
                 self.throughput_bytes
             }
+            Throughput::BytesDecimal(n) => {
+                for val in values {
+                    *val /= *n as f64;
+                }
+                self.throughput_bytes
+            }
             Throughput::Elements(n) => {
                 for val in values {
                     *val /= *n as f64;
