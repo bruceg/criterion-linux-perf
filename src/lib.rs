@@ -24,6 +24,7 @@
 //! ```
 
 #![deny(missing_docs)]
+#![deny(clippy::all, clippy::pedantic)]
 
 use criterion::{
     measurement::{Measurement, ValueFormatter},
@@ -111,6 +112,7 @@ impl Default for PerfMeasurement {
 
 impl PerfMeasurement {
     /// Create a new measurement, using the given [`PerfMode`] event.
+    #[must_use]
     pub fn new(mode: PerfMode) -> Self {
         let event = mode.event();
         let formatter = mode.formatter();
@@ -144,6 +146,7 @@ impl Measurement for PerfMeasurement {
         0
     }
 
+    #[allow(clippy::cast_precision_loss)]
     fn to_f64(&self, val: &Self::Value) -> f64 {
         *val as f64
     }
@@ -165,6 +168,7 @@ impl ValueFormatter for PerfFormatter {
         self.units
     }
 
+    #[allow(clippy::cast_precision_loss)]
     fn scale_throughputs(
         &self,
         _typical_value: f64,
@@ -172,13 +176,7 @@ impl ValueFormatter for PerfFormatter {
         values: &mut [f64],
     ) -> &'static str {
         match throughput {
-            Throughput::Bytes(n) => {
-                for val in values {
-                    *val /= *n as f64;
-                }
-                self.throughput_bytes
-            }
-            Throughput::BytesDecimal(n) => {
+            Throughput::Bytes(n) | Throughput::BytesDecimal(n) => {
                 for val in values {
                     *val /= *n as f64;
                 }
