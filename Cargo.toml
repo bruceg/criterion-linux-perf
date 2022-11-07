@@ -13,7 +13,7 @@ documentation = "https://docs.rs/criterion-linux-perf/"
 
 [dependencies]
 criterion = "0.4.0"
-perf-event = "0.4.7"
+perf-event = "0.4.8"
 
 [[bench]]
 name = "test"
