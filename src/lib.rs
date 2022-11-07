@@ -43,12 +43,14 @@ macro_rules! perf_mode {
                 }
             }
 
-             fn units(&self) -> (&'static str, &'static str, &'static str) {
+             fn formatter(&self) -> PerfFormatter {
                 match self {
                     $( Self::$ident => (
-                        $unit,
-                        concat!($unit, "/byte"),
-                        concat!($unit, "/element"),
+                        PerfFormatter {
+                            units: $unit,
+                            throughput_bytes: concat!($unit, "/byte"),
+                            throughput_elements: concat!($unit, "/element"),
+                        }
                     ), )*
                 }
             }
@@ -110,13 +112,8 @@ impl Default for PerfMeasurement {
 impl PerfMeasurement {
     /// Create a new measurement, using the given [`PerfMode`] event.
     pub fn new(mode: PerfMode) -> Self {
-        let units = mode.units();
         let event = mode.event();
-        let formatter = PerfFormatter {
-            units: units.0,
-            throughput_bytes: units.1,
-            throughput_elements: units.2,
-        };
+        let formatter = mode.formatter();
         Self { event, formatter }
     }
 }
